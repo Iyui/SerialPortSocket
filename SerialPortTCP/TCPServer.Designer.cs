@@ -77,7 +77,7 @@
             this.txt_Log.Multiline = true;
             this.txt_Log.Name = "txt_Log";
             this.txt_Log.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txt_Log.Size = new System.Drawing.Size(330, 434);
+            this.txt_Log.Size = new System.Drawing.Size(338, 443);
             this.txt_Log.TabIndex = 5;
             // 
             // btn_Start
@@ -145,7 +145,7 @@
             this.Controls.Add(this.txt_Port);
             this.Controls.Add(this.txt_IP);
             this.Name = "TCPServer";
-            this.Text = "FrmServer";
+            this.Text = "TCP&串口互转工具";
             this.Load += new System.EventHandler(this.TCPServer_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
