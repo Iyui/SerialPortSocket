@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Threading;
 using System.IO;
-
+using System.IO.Ports;
 namespace SerialPortTCP
 {
     public partial class TCPServer : Form
@@ -19,6 +19,15 @@ namespace SerialPortTCP
         public TCPServer()
         {
             InitializeComponent();
+            sp.DataReceived += Sp_DataReceived;
+            this.receiveCallBack = new ReceiveMsgCallBack(ReceiveMsg);
+            string[] ports = SerialPort.GetPortNames();
+            if (ports.Length > 0)
+            {
+                sp.PortName = ports[0];
+            }
+            comboBox1.Items.Add(sp.PortName);
+            comboBox1.Text = sp.PortName;
         }
 
         //定义回调:解决跨线程访问问题
@@ -44,7 +53,7 @@ namespace SerialPortTCP
         Socket socketWatch;
 
         //将远程连接的客户端的IP地址和Socket存入集合中
-        Dictionary<string, Socket> dicSocket = new Dictionary<string, Socket>();
+        static Dictionary<string, Socket> dicSocket = new Dictionary<string, Socket>();
 
         //创建监听连接的线程
         Thread AcceptSocketThread;
@@ -105,6 +114,7 @@ namespace SerialPortTCP
                 threadReceive = new Thread(new ParameterizedThreadStart(Receive));
                 threadReceive.IsBackground = true;
                 threadReceive.Start(socketSend);
+                Send();
                 Console.Read();
 
             }
@@ -133,6 +143,8 @@ namespace SerialPortTCP
                     }
                     else
                     {
+                        if(sp.IsOpen)
+                            sp.Write(buffer, 0, buffer.Length);
                         var s = "";
                         foreach (var c in buffer)
                             s += c.ToString("X2");
@@ -200,6 +212,81 @@ namespace SerialPortTCP
             }
             //socketSend.Send(buffer);
         }
+
+        private void Send()
+        {
+            while (true)
+            {
+                if (ByteQueue.Any())
+                {
+                    try
+                    {
+                        string strMsg = this.txt_Msg.Text.Trim();
+                        byte[] buffer = Encoding.Default.GetBytes(strMsg);
+                        List<byte> list = new List<byte>();
+                        list.Add(0);
+                        list.AddRange(buffer);
+                        //将泛型集合转换为数组
+                        byte[] newBuffer = list.ToArray();
+                        //获得用户选择的IP地址
+                        
+                        //var mess = new byte[] { 0xff, 0x08, 0x07 };
+                        //= @"FF 08 07";
+                        var mess = DivisionHEX(txt_Msg.Text).TrimEnd();
+
+                        //var strings = mess.Split(' ');
+                        //var bytes = Array.ConvertAll(strings, input => Convert.ToByte(input, 16));
+                        dicSocket[ip].Send(ByteQueue.Dequeue());
+                        txt_Log.Invoke(receiveCallBack, $"发送成功");
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("给客户端发送消息出错:" + ex.Message);
+                    }
+                }
+                else
+                    Thread.Sleep(1);
+            }
+        }
+
+        SerialPort sp = new SerialPort();
+        //public static byte[] transmitByte = null;
+        public static Queue<byte[]> ByteQueue = new Queue<byte[]>();
+        private void Sp_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            int len = sp.BytesToRead;
+            byte[] data = new byte[len];
+            sp.Read(data, 0, data.Length);
+            ByteQueue.Enqueue(data);
+            string temp = "";
+            for (int i = 0; i < data.Length; i++)
+            {
+                temp += data[i].ToString("X2") + " ";
+            }
+            txt_Log.Invoke(receiveCallBack, $"接收数据{temp}\n");
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (!sp.IsOpen)
+            {
+                try
+                {
+                    sp.PortName = comboBox1.Text;
+                    sp.Open();
+                    txt_Log.AppendText($"打开串口{sp.PortName}:{sp.BaudRate}成功");
+                }
+                catch { }
+            }
+        }
+
+        private void comboBox1_DropDown(object sender, EventArgs e)
+        {
+            comboBox1.Items.Clear();
+            comboBox1.Items.AddRange(SerialPort.GetPortNames());
+        }
+
+        //声明
 
         /// <summary>
         /// 选择要发送的文件
@@ -302,6 +389,16 @@ namespace SerialPortTCP
             return x;
         }
 
+        private void TCPServer_Load(object sender, EventArgs e)
+        {
+            txt_IP.Text = "192.168.1.128";
+            txt_Port.Text = "9000";
+        }
+        string ip = "";
+        private void cmb_Socket_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            ip = this.cmb_Socket.SelectedItem.ToString();
+        }
     }
 }
 
