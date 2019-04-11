@@ -98,7 +98,7 @@ namespace SerialPortTCP
             AcceptSocketThread.IsBackground = true;
             AcceptSocketThread.Start(socketWatch);
         }
-
+      
         /// <summary>
         /// 等待客户端的连接，并且创建与之通信用的Socket
         /// </summary>
@@ -238,7 +238,8 @@ namespace SerialPortTCP
             }
             catch (Exception ex)
             {
-                MessageBox.Show("给客户端发送消息出错:" + ex.Message);
+                txt_Log.Invoke(receiveCallBack, "给客户端发送消息出错:" + ex.Message);
+                //MessageBox.Show("给客户端发送消息出错:" );
             }
             //socketSend.Send(buffer);
         }

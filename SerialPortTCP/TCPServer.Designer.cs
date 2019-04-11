@@ -59,8 +59,9 @@
             // txt_Msg
             // 
             this.txt_Msg.Location = new System.Drawing.Point(44, 331);
+            this.txt_Msg.Multiline = true;
             this.txt_Msg.Name = "txt_Msg";
-            this.txt_Msg.Size = new System.Drawing.Size(280, 21);
+            this.txt_Msg.Size = new System.Drawing.Size(280, 70);
             this.txt_Msg.TabIndex = 2;
             // 
             // cmb_Socket
@@ -94,7 +95,7 @@
             // 
             // button2
             // 
-            this.button2.Location = new System.Drawing.Point(353, 329);
+            this.button2.Location = new System.Drawing.Point(249, 415);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(75, 23);
             this.button2.TabIndex = 7;
@@ -134,7 +135,7 @@
             // lClientIP
             // 
             this.lClientIP.AutoSize = true;
-            this.lClientIP.Location = new System.Drawing.Point(140, 197);
+            this.lClientIP.Location = new System.Drawing.Point(176, 197);
             this.lClientIP.Name = "lClientIP";
             this.lClientIP.Size = new System.Drawing.Size(41, 12);
             this.lClientIP.TabIndex = 11;
@@ -145,9 +146,9 @@
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(42, 197);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(83, 12);
+            this.label1.Size = new System.Drawing.Size(119, 12);
             this.label1.TabIndex = 12;
-            this.label1.Text = "客户端IP地址:";
+            this.label1.Text = "监听的客户端IP地址:";
             // 
             // TCPServer
             // 
