@@ -38,6 +38,8 @@
             this.button1 = new System.Windows.Forms.Button();
             this.button3 = new System.Windows.Forms.Button();
             this.comboBox1 = new System.Windows.Forms.ComboBox();
+            this.lClientIP = new System.Windows.Forms.Label();
+            this.label1 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // txt_IP
@@ -56,7 +58,7 @@
             // 
             // txt_Msg
             // 
-            this.txt_Msg.Location = new System.Drawing.Point(50, 331);
+            this.txt_Msg.Location = new System.Drawing.Point(44, 331);
             this.txt_Msg.Name = "txt_Msg";
             this.txt_Msg.Size = new System.Drawing.Size(280, 21);
             this.txt_Msg.TabIndex = 2;
@@ -65,7 +67,7 @@
             // 
             this.cmb_Socket.FormattingEnabled = true;
             this.cmb_Socket.ItemHeight = 12;
-            this.cmb_Socket.Location = new System.Drawing.Point(44, 204);
+            this.cmb_Socket.Location = new System.Drawing.Point(44, 228);
             this.cmb_Socket.Name = "cmb_Socket";
             this.cmb_Socket.Size = new System.Drawing.Size(280, 88);
             this.cmb_Socket.TabIndex = 3;
@@ -129,11 +131,31 @@
             this.comboBox1.TabIndex = 9;
             this.comboBox1.DropDown += new System.EventHandler(this.comboBox1_DropDown);
             // 
+            // lClientIP
+            // 
+            this.lClientIP.AutoSize = true;
+            this.lClientIP.Location = new System.Drawing.Point(140, 197);
+            this.lClientIP.Name = "lClientIP";
+            this.lClientIP.Size = new System.Drawing.Size(41, 12);
+            this.lClientIP.TabIndex = 11;
+            this.lClientIP.Text = "label1";
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(42, 197);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(83, 12);
+            this.label1.TabIndex = 12;
+            this.label1.Text = "客户端IP地址:";
+            // 
             // TCPServer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.label1);
+            this.Controls.Add(this.lClientIP);
             this.Controls.Add(this.button3);
             this.Controls.Add(this.comboBox1);
             this.Controls.Add(this.button1);
@@ -164,6 +186,8 @@
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.ComboBox comboBox1;
+        private System.Windows.Forms.Label lClientIP;
+        private System.Windows.Forms.Label label1;
     }
 }
 

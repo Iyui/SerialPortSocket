@@ -30,14 +30,21 @@ namespace SerialPortTCP
             comboBox1.Text = sp.PortName;
         }
 
+        private bool _isDMYTcp = false;
+
         //定义回调:解决跨线程访问问题
         private delegate void SetTextValueCallBack(string strValue);
         //定义接收客户端发送消息的回调
         private delegate void ReceiveMsgCallBack(string strReceive);
+
+        private delegate void IPCallBack(string strReceive);
+
         //声明回调
         private SetTextValueCallBack setCallBack;
         //声明
         private ReceiveMsgCallBack receiveCallBack;
+
+        private IPCallBack ipCallBack;
         //定义回调：给ComboBox控件添加元素
         private delegate void SetCmbCallBack(string strItem);
         //声明
@@ -82,6 +89,7 @@ namespace SerialPortTCP
             //实例化回调
             setCallBack = new SetTextValueCallBack(SetTextValue);
             receiveCallBack = new ReceiveMsgCallBack(ReceiveMsg);
+            ipCallBack = new IPCallBack(IpChangeValue);
             setCmbCallBack = new SetCmbCallBack(AddCmbItem);
             sendCallBack = new SendFileCallBack(SendFile);
 
@@ -107,6 +115,7 @@ namespace SerialPortTCP
                 dicSocket.Add(strIp, socketSend);
                 this.cmb_Socket.Invoke(setCmbCallBack, strIp);
                 string strMsg = "远程主机：" + socketSend.RemoteEndPoint + "连接成功";
+                
                 //使用回调
                 txt_Log.Invoke(setCallBack, strMsg);
 
@@ -114,6 +123,8 @@ namespace SerialPortTCP
                 threadReceive = new Thread(new ParameterizedThreadStart(Receive));
                 threadReceive.IsBackground = true;
                 threadReceive.Start(socketSend);
+                if(!_isDMYTcp)
+                    Test(strIp);
                 Send();
                 Console.Read();
 
@@ -143,14 +154,24 @@ namespace SerialPortTCP
                     }
                     else
                     {
-                        if(sp.IsOpen)
+                        if (sp.IsOpen)
                             sp.Write(buffer, 0, buffer.Length);
                         var s = "";
                         foreach (var c in buffer)
                             s += c.ToString("X2");
                         string str = Encoding.ASCII.GetString(buffer, 0, count);
-                        string strReceiveMsg = "接收：" + s + "发送的消息:" + str;
-                        txt_Log.Invoke(receiveCallBack, strReceiveMsg);
+                        string strReceiveMsg = $"接收：{s}发送的消息：{ str}";
+                        if (!_isDMYTcp)
+                        {
+                            if (s.ToLower().IndexOf("ff0807") >= 0)
+                            {
+                                _isDMYTcp = true;
+                                ip = socketSend.RemoteEndPoint.ToString();
+                                ChangeClientIP();
+                                txt_Log.Invoke(receiveCallBack, $"\n测试成功:当前客户端IP:{ip}");
+                            }
+                        }
+                            txt_Log.Invoke(receiveCallBack, strReceiveMsg);
                     }
                 }
                 catch
@@ -175,6 +196,11 @@ namespace SerialPortTCP
             this.txt_Log.AppendText(strMsg + " \r \n");
         }
 
+        private void IpChangeValue(string strMsg)
+        {
+            lClientIP.Text = strMsg;
+        }
+
         private void AddCmbItem(string strItem)
         {
             this.cmb_Socket.Items.Add(strItem);
@@ -189,22 +215,26 @@ namespace SerialPortTCP
         {
             try
             {
-                string strMsg = this.txt_Msg.Text.Trim();
-                byte[] buffer = Encoding.Default.GetBytes(strMsg);
-                List<byte> list = new List<byte>();
-                list.Add(0);
-                list.AddRange(buffer);
-                //将泛型集合转换为数组
-                byte[] newBuffer = list.ToArray();
-                //获得用户选择的IP地址
-                string ip = this.cmb_Socket.SelectedItem.ToString();
-                //var mess = new byte[] { 0xff, 0x08, 0x07 };
-                //= @"FF 08 07";
-                var mess = DivisionHEX(txt_Msg.Text).TrimEnd();
-                var strings = mess.Split(' ');
-                var bytes = Array.ConvertAll(strings, input => Convert.ToByte(input, 16));
-                dicSocket[ip].Send(bytes);
-                txt_Log.AppendText("发送成功");
+                txt_Log.AppendText("测试链接");
+                var mess = new byte[] { 0xff, 0x08, 0x07 };
+                dicSocket[ip].Send(mess);
+            }
+            catch (Exception ex)
+            {
+                txt_Log.AppendText("给客户端发送消息出错:" + ex.Message);
+            }
+            //socketSend.Send(buffer);
+        }
+
+        private void Test(string ip)
+        {
+            try
+            {
+                var mess = new byte[] { 0xff, 0x08, 0x07 };
+                txt_Log.Invoke(receiveCallBack, "测试链接");
+                int i = 0;
+                while(i++<5 && !_isDMYTcp)
+                    dicSocket[ip].Send(mess);
             }
             catch (Exception ex)
             {
@@ -236,6 +266,7 @@ namespace SerialPortTCP
 
                         //var strings = mess.Split(' ');
                         //var bytes = Array.ConvertAll(strings, input => Convert.ToByte(input, 16));
+
                         dicSocket[ip].Send(ByteQueue.Dequeue());
                         txt_Log.Invoke(receiveCallBack, $"发送成功");
                     }
@@ -359,6 +390,8 @@ namespace SerialPortTCP
         /// <param name="e"></param>
         private void btn_StopListen_Click(object sender, EventArgs e)
         {
+            _isDMYTcp = false;
+            cmb_Socket.Items.Clear();
             socketWatch.Close();
             socketSend.Close();
             //终止线程
@@ -395,9 +428,16 @@ namespace SerialPortTCP
             txt_Port.Text = "9000";
         }
         string ip = "";
+
         private void cmb_Socket_SelectedIndexChanged(object sender, EventArgs e)
         {
-            ip = this.cmb_Socket.SelectedItem.ToString();
+            ip = this.cmb_Socket.SelectedItem?.ToString();
+            ChangeClientIP();
+        }
+
+        private void ChangeClientIP()
+        {
+            lClientIP.Invoke(ipCallBack, ip);
         }
     }
 }
