@@ -43,6 +43,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="TCPClient.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="TCPClient.Designer.cs">
+      <DependentUpon>TCPClient.cs</DependentUpon>
+    </Compile>
     <Compile Include="TCPServer.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -60,6 +66,9 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="TCPClient.resx">
+      <DependentUpon>TCPClient.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="TCPServer.resx">
       <DependentUpon>TCPServer.cs</DependentUpon>
     </EmbeddedResource>

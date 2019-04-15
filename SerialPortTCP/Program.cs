@@ -15,7 +15,8 @@ namespace SerialPortTCP
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new TCPServer());
+            Application.Run(new TCPClient());
+           
         }
     }
 }

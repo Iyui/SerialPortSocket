@@ -1,6 +1,6 @@
 ﻿namespace SerialPortTCP
 {
-    partial class TCPServer
+    partial class TCPClient
     {
         /// <summary>
         /// 必需的设计器变量。
@@ -89,7 +89,7 @@
             this.btn_Start.Name = "btn_Start";
             this.btn_Start.Size = new System.Drawing.Size(75, 23);
             this.btn_Start.TabIndex = 6;
-            this.btn_Start.Text = "监听";
+            this.btn_Start.Text = "连接";
             this.btn_Start.UseVisualStyleBackColor = true;
             this.btn_Start.Click += new System.EventHandler(this.btn_Start_Click);
             // 
@@ -109,7 +109,7 @@
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(75, 23);
             this.button1.TabIndex = 8;
-            this.button1.Text = "停止监听";
+            this.button1.Text = "断开连接";
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.btn_StopListen_Click);
             // 
@@ -150,7 +150,7 @@
             this.label1.TabIndex = 12;
             this.label1.Text = "监听的客户端IP地址:";
             // 
-            // TCPServer
+            // TCPClient
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -167,8 +167,8 @@
             this.Controls.Add(this.txt_Msg);
             this.Controls.Add(this.txt_Port);
             this.Controls.Add(this.txt_IP);
-            this.Name = "TCPServer";
-            this.Text = "TCPClient转发";
+            this.Name = "TCPClient";
+            this.Text = "TCP&串口互转工具";
             this.Load += new System.EventHandler(this.TCPServer_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -191,4 +191,3 @@
         private System.Windows.Forms.Label label1;
     }
 }
-

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -13,9 +14,9 @@ using System.IO;
 using System.IO.Ports;
 namespace SerialPortTCP
 {
-    public partial class TCPServer : Form
+    public partial class TCPClient : Form
     {
-        public TCPServer()
+        public TCPClient()
         {
             InitializeComponent();
             sp.DataReceived += Sp_DataReceived;
@@ -28,9 +29,6 @@ namespace SerialPortTCP
             comboBox1.Items.Add(sp.PortName);
             comboBox1.Text = sp.PortName;
         }
-
-        private readonly string PCRegistrationCode = "736867617264656E";//shgarden
-        private readonly string ModuleRegistrationCode = "6E65647261676873";//nedraghs
 
         private bool _isDMYTcp = false;
 
@@ -53,27 +51,19 @@ namespace SerialPortTCP
         private SetCmbCallBack setCmbCallBack;
         //定义发送文件的回调
         private delegate void SendFileCallBack(byte[] bf);
-        //定义发送文件的回调
-        private delegate void SendMessageCallBack();
-
         //声明
         private SendFileCallBack sendCallBack;
-
-        //声明
-        private SendMessageCallBack sendMessageCallBack;
 
         //用于通信的Socket
         Socket socketSend;
         //用于监听的SOCKET
         Socket socketWatch;
 
-        //将远程连接的模块客户端的IP地址和Socket存入dicPCSocket集合中
-        static Dictionary<string, Socket> dicPCSocket = new Dictionary<string, Socket>();
-        //将远程连接的PC客户端的IP地址和Socket存入dicModuleSocket集合中
-        static Dictionary<string, Socket> dicModuleSocket = new Dictionary<string, Socket>();
+        Thread sendThread = null;
 
-        //创建监听连接的线程
-        Thread AcceptSocketThread;
+        //将远程连接的客户端的IP地址和Socket存入集合中
+        static Dictionary<string, Socket> dicSocket = new Dictionary<string, Socket>();
+
         //接收客户端发送消息的线程
         Thread threadReceive;
 
@@ -84,80 +74,36 @@ namespace SerialPortTCP
         /// <param name="e"></param>
         private void btn_Start_Click(object sender, EventArgs e)
         {
-            //当点击开始监听的时候 在服务器端创建一个负责监听IP地址和端口号的Socket
-            int port = int.Parse(this.txt_Port.Text.Trim());
-            IPEndPoint ipe = new IPEndPoint(IPAddress.Any, port);//new IPEndPoint(IPAddress.Any, port);//IPAddress.Parse("180.175.63.122")
+            string host = txt_IP.Text ;//服务端IP地址
+            int port = int.Parse(txt_Port.Text);
             socketWatch = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            socketWatch.Bind(ipe);
-            socketWatch.Listen(20);
-            this.txt_Log.AppendText("监听成功" + " \r \n");
+            //设置端口可复用
+            socketWatch.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            //连接服务端
+            socketWatch.Connect(host, port);
 
+            this.txt_Log.AppendText("连接成功" + " \r \n");
+            
             //实例化回调
             setCallBack = new SetTextValueCallBack(SetTextValue);
             receiveCallBack = new ReceiveMsgCallBack(ReceiveMsg);
             ipCallBack = new IPCallBack(IpChangeValue);
             setCmbCallBack = new SetCmbCallBack(AddCmbItem);
             sendCallBack = new SendFileCallBack(SendFile);
-            Thread send = new Thread(Send);
-            send.Start();
-           //创建线程
-            AcceptSocketThread = new Thread(new ParameterizedThreadStart(StartListen));
-            AcceptSocketThread.IsBackground = true;
-            AcceptSocketThread.Start(socketWatch);
-            
+            sendThread = new Thread(Send);
+            sendThread.Start();
+            threadReceive = new Thread(new ParameterizedThreadStart(Receive));
+            threadReceive.IsBackground = true;
+            threadReceive.Start(socketWatch);
         }
 
         /// <summary>
-        /// 等待客户端的连接，并且创建与之通信用的Socket
-        /// </summary>
-        /// <param name="obj"></param>
-        private void StartListen(object obj)
-        {
-            Socket socketWatch = obj as Socket;
-            while (true)
-            {
-                //等待客户端的连接，并且创建一个用于通信的Socket
-                socketSend = socketWatch.Accept();
-                //获取远程主机的ip地址和端口号
-                string strIp = socketSend.RemoteEndPoint.ToString();
-
-                ////客户端连接成功后，服务器接收客户端发送的消息
-                //byte[] buffer = new byte[36];
-                ////实际接收到的有效字节数
-                //socketSend.Receive(buffer);
-                //var s = "";
-                //foreach (var c in buffer)
-                //    s += c.ToString("X2");
-                ////判断是哪个客户端的连接
-                //if (s.IndexOf(ModuleRegistrationCode) != -1)
-                //    dicModuleSocket.Add(strIp, socketSend);
-                //else if (s.IndexOf(PCRegistrationCode) != -1)
-                //    dicPCSocket.Add(strIp, socketSend);
-                dicPCSocket.Add(strIp, socketSend);
-                this.cmb_Socket.Invoke(setCmbCallBack, strIp);
-                string strMsg = "远程主机：" + socketSend.RemoteEndPoint + "连接成功";
-                //使用回调
-                txt_Log.Invoke(setCallBack, strMsg);
-
-                //定义接收客户端消息的线程
-                threadReceive = new Thread(new ParameterizedThreadStart(Receive));
-                threadReceive.IsBackground = true;
-                threadReceive.Start(socketSend);
-                
-                Console.Read();
-
-            }
-        }
-
-
-
-        /// <summary>
-        /// 服务器端不停的接收客户端发送的消息
+        /// 不停的接收服务器端发送的消息
         /// </summary>
         /// <param name="obj"></param>
         private void Receive(object obj)
         {
-            Socket socketSend = obj as Socket;
+            socketSend = obj as Socket;
             while (true)
             {
                 try
@@ -172,15 +118,24 @@ namespace SerialPortTCP
                     }
                     else
                     {
+                        if (sp.IsOpen)
+                            sp.Write(buffer, 0, buffer.Length);
                         var s = "";
                         foreach (var c in buffer)
                             s += c.ToString("X2");
                         string str = Encoding.ASCII.GetString(buffer, 0, count);
-                        if (DisposeMessage(str, buffer))
+                        string strReceiveMsg = $"接收：{s}发送的消息：{ str}";
+                        if (!_isDMYTcp)
                         {
-                            string strReceiveMsg = "接收：" + s + "发送的消息:" + str;
-                            txt_Log.Invoke(receiveCallBack, strReceiveMsg);
+                            if (s.ToLower().IndexOf("ff0807") >= 0)
+                            {
+                                _isDMYTcp = true;
+                                ip = socketSend.RemoteEndPoint.ToString();
+                                ChangeClientIP();
+                                txt_Log.Invoke(receiveCallBack, $"\n测试成功:当前客户端IP:{ip}");
+                            }
                         }
+                        txt_Log.Invoke(receiveCallBack, strReceiveMsg);
                     }
                 }
                 catch
@@ -188,18 +143,6 @@ namespace SerialPortTCP
 
                 }
             }
-        }
-
-        //是否为模块发送的数据
-        private bool DisposeMessage(string str,byte[] buffer)
-        {
-            var message = str.Split(':');
-            if (message[0] == "shgarden"||true)
-            {
-                ByteQueue.Enqueue(buffer);
-                return true;
-            }
-            return false;
         }
 
         /// <summary>
@@ -238,7 +181,7 @@ namespace SerialPortTCP
             {
                 txt_Log.AppendText("测试链接");
                 var mess = new byte[] { 0xff, 0x08, 0x07 };
-                //dicPCSocket[ip].Send(mess);
+                dicSocket[ip].Send(mess);
             }
             catch (Exception ex)
             {
@@ -254,8 +197,8 @@ namespace SerialPortTCP
                 var mess = new byte[] { 0xff, 0x08, 0x07 };
                 txt_Log.Invoke(receiveCallBack, "测试链接");
                 int i = 0;
-                while(i++<5 && !_isDMYTcp)
-                    dicPCSocket[ip].Send(mess);
+                while (i++ < 5 && !_isDMYTcp)
+                    dicSocket[ip].Send(mess);
             }
             catch (Exception ex)
             {
@@ -281,23 +224,15 @@ namespace SerialPortTCP
                         //将泛型集合转换为数组
                         byte[] newBuffer = list.ToArray();
                         //获得用户选择的IP地址
-                        
+
                         //var mess = new byte[] { 0xff, 0x08, 0x07 };
                         //= @"FF 08 07";
                         var mess = DivisionHEX(txt_Msg.Text).TrimEnd();
 
                         //var strings = mess.Split(' ');
                         //var bytes = Array.ConvertAll(strings, input => Convert.ToByte(input, 16));
-                        var bytes = ByteQueue.Dequeue();
-                        foreach (var ip in dicPCSocket.Keys)
-                        {                  
-                            try
-                            {
-                                dicPCSocket[ip].Send(bytes);
-                            }
-                            catch (Exception ex)
-                            { };   
-                        }
+
+                        socketWatch.Send(ByteQueue.Dequeue());
                         txt_Log.Invoke(receiveCallBack, $"发送成功");
                     }
                     catch (Exception ex)
@@ -318,7 +253,10 @@ namespace SerialPortTCP
             int len = sp.BytesToRead;
             byte[] data = new byte[len];
             sp.Read(data, 0, data.Length);
-            ByteQueue.Enqueue(data);
+            var lis = Encoding.Default.GetBytes("shgarden:").ToList();
+            foreach (var b in data)
+                lis.Add(b);
+            ByteQueue.Enqueue(lis.ToArray());
             string temp = "";
             for (int i = 0; i < data.Length; i++)
             {
@@ -399,7 +337,7 @@ namespace SerialPortTCP
 
             try
             {
-                dicPCSocket[cmb_Socket.SelectedItem.ToString()].Send(sendBuffer, SocketFlags.None);
+                dicSocket[cmb_Socket.SelectedItem.ToString()].Send(sendBuffer, SocketFlags.None);
             }
             catch (Exception ex)
             {
@@ -410,7 +348,7 @@ namespace SerialPortTCP
         private void btn_Shock_Click(object sender, EventArgs e)
         {
             byte[] buffer = new byte[1] { 2 };
-            dicPCSocket[cmb_Socket.SelectedItem.ToString()].Send(buffer);
+            dicSocket[cmb_Socket.SelectedItem.ToString()].Send(buffer);
         }
 
         /// <summary>
@@ -425,8 +363,8 @@ namespace SerialPortTCP
             socketWatch.Close();
             socketSend.Close();
             //终止线程
-            AcceptSocketThread.Abort();
             threadReceive.Abort();
+            sendThread.Abort();
         }
 
         private void StringToHex()
@@ -456,20 +394,20 @@ namespace SerialPortTCP
         {
             txt_IP.Text = "192.168.1.128";
             txt_Port.Text = "9000";
-            
+            var ts = new TCPServer();
+            ts.Show();
         }
-        //string ip = "";
+        string ip = "";
 
         private void cmb_Socket_SelectedIndexChanged(object sender, EventArgs e)
         {
-            //ip = this.cmb_Socket.SelectedItem?.ToString();
+            ip = this.cmb_Socket.SelectedItem?.ToString();
             ChangeClientIP();
         }
 
         private void ChangeClientIP()
         {
-           // lClientIP.Invoke(ipCallBack, ip);
+            lClientIP.Invoke(ipCallBack, ip);
         }
     }
 }
-
